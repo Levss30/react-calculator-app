@@ -61,6 +61,27 @@ function reducer(state, {type, payload}) {
         case ACTIONS.CLEAR:
             return{}
 
+        case ACTIONS.DELETE_DIGIT:
+            if(state.overwrite){
+                return{
+                    ...state,
+                    overwrite: false,
+                    currentOperand: false,
+                }
+            }
+            if(state.currentOperand == null)
+            return state
+            if(state.currentOperand.length === 1){
+                return{
+                    ...state,
+                    currentOperand: null
+                }
+            }
+            return{
+                ...state,
+                currentOperand: state.currentOperand.slice(0, -1)
+            }
+
         case ACTIONS.EVALUATE:
             if(state.operation == null || state.previousOperand == null || state.currentOperand == null){  
                 return state
@@ -73,33 +94,47 @@ function reducer(state, {type, payload}) {
                 currentOperand: evaluate(state),
             }
     }
+}
 
-    function evaluate({currentOperand, previousOperand, operation}){
-        const prev = parseFloat(previousOperand)
-        const current = parseFloat(currentOperand)
-        if(isNaN(prev) || isNaN(current)){
-            return ""
-        }
-        let computation = ""
-        switch(operation){
-            case "+":
-                computation = prev + current
-                break
-            case "-":
-                computation = prev - current
-                break
-            case "÷":
-                computation = prev / current
-                break
-            case "*":
-                computation = prev * current
-                break
-        }
-
-        return computation.toString() 
+function evaluate({currentOperand, previousOperand, operation}){
+    const prev = parseFloat(previousOperand)
+    const current = parseFloat(currentOperand)
+    if(isNaN(prev) || isNaN(current)){
+        return ""
+    }
+    let computation = ""
+    switch(operation){
+        case "+":
+            computation = prev + current
+            break
+        case "-":
+            computation = prev - current
+            break
+        case "÷":
+            computation = prev / current
+            break
+        case "*":
+            computation = prev * current
+            break
     }
 
+    return computation.toString() 
 }
+
+const INTERGER_FORMATER = new Intl.NumberFormat("en-us", {
+    maximumFractionDigits: 0
+})
+
+function FormatOperand(operand){
+    if (operand == null)
+    return 
+    const [interger, decimal] = operand.split('.')
+    if (decimal == null)
+    return INTERGER_FORMATER.format(interger)
+
+    return `${INTERGER_FORMATER.format(interger)}.${decimal}`
+}
+
 
 const Calculator = () => {
   const [{currentOperand, previousOperand, operation}, dispatch] = useReducer(reducer, {})
@@ -107,11 +142,11 @@ const Calculator = () => {
     return (
     <div className='calculator-grid'>
         <div className='output'>
-            <div className='previous-operand'>{previousOperand} {operation}</div>
-            <div className='current-operand'>{currentOperand}</div>
+            <div className='previous-operand'>{FormatOperand(previousOperand)} {operation}</div>
+            <div className='current-operand'>{FormatOperand(currentOperand)}</div>
         </div>
         <button className='span-two' onClick={() => dispatch({type: ACTIONS.CLEAR })}>AC</button>
-        <button>DEL</button>
+        <button onClick={() => dispatch({type: ACTIONS.DELETE_DIGIT })}>DEL</button>
         <OperationButton operation="÷" dispatch={dispatch} />
         <DigitButton digit="1" dispatch={dispatch} />
         <DigitButton digit="2" dispatch={dispatch} />
@@ -127,7 +162,7 @@ const Calculator = () => {
         <OperationButton operation="-" dispatch={dispatch}/>
         <DigitButton digit="." dispatch={dispatch} />
         <DigitButton digit="0" dispatch={dispatch} />
-        <button className='span=two' onClick={() => dispatch({type: ACTIONS.EVALUATE })}>=</button>
+        <button className='span-two' onClick={() => dispatch({type: ACTIONS.EVALUATE })}>=</button>
     </div>
   )
 }
